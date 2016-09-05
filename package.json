@@ -1,0 +1,19 @@
+{
+  "name": "mbed-js-ble",
+  "version": "0.0.1",
+  "description": "BLE for JS on mbed",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/matthewelse/mbed-js-ble.git"
+  },
+  "author": "Matthew Else <matthewelse1997@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/matthewelse/mbed-js-ble/issues"
+  },
+  "homepage": "https://github.com/matthewelse/mbed-js-ble#readme"
+}
