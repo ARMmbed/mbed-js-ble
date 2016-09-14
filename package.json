@@ -8,12 +8,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/matthewelse/mbed-js-ble.git"
+    "url": "git+https://github.com/ARMmbed/mbed-js-ble.git"
   },
-  "author": "Matthew Else <matthewelse1997@gmail.com>",
-  "license": "MIT",
+  "author": "Matthew Else <Matthew.Else@arm.com>",
+  "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/matthewelse/mbed-js-ble/issues"
+    "url": "https://github.com/ARMmbed/mbed-js-ble/issues"
   },
-  "homepage": "https://github.com/matthewelse/mbed-js-ble#readme"
+  "homepage": "https://github.com/ARMmbed/mbed-js-ble#readme"
 }
