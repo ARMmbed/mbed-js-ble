@@ -31,10 +31,36 @@ void BLEService__destructor(uintptr_t native_ptr) {
     free(data);
 }
 
+DECLARE_CLASS_FUNCTION(BLEService, getUUID) {
+    CHECK_ARGUMENT_COUNT(BLEService, getUUID, args_count==0);
+
+    // get the native pointer
+    uintptr_t native_handle;
+    jerry_get_object_native_handle(this_obj, &native_handle);
+
+    js_ble_service_data_t *native_ptr = (js_ble_service_data_t*)native_handle;
+    GattService *service = native_ptr->service;
+
+    const UUID & uuid = service->getUUID();
+
+    // @todo, support 128-bit UUIDs
+    if (uuid.shortOrLong() == UUID::UUID_TYPE_LONG) {
+        printf("BLEService.getUUID(): 128 bit UUIDs not yet supported...\r\n");
+        return jerry_create_undefined();
+    }
+    else {
+        uint16_t shortUuid = uuid.getShortUUID();
+
+        char buf[5];
+        sprintf(buf, "%04x", shortUuid);
+        return jerry_create_string((const jerry_char_t *) buf);
+    }
+}
+
 DECLARE_CLASS_CONSTRUCTOR(BLEService) {
     CHECK_ARGUMENT_COUNT(BLEService, __constructor, (args_count == 2));
-    CHECK_ARGUMENT_TYPE_ALWAYS(BLEDevice, __constructor, 0, string);
-    CHECK_ARGUMENT_TYPE_ALWAYS(BLEDevice, __constructor, 1, array);
+    CHECK_ARGUMENT_TYPE_ALWAYS(BLEService, __constructor, 0, string);
+    CHECK_ARGUMENT_TYPE_ALWAYS(BLEService, __constructor, 1, array);
 
     jerry_value_t service_uuid = args[0];
     jerry_value_t characteristics = args[1];
@@ -71,6 +97,8 @@ DECLARE_CLASS_CONSTRUCTOR(BLEService) {
     // create the jerryscript object
     jerry_value_t js_object = jerry_create_object();
     jerry_set_object_native_handle(js_object, native_ptr, BLEService__destructor);
+
+    ATTACH_CLASS_FUNCTION(js_object, BLEService, getUUID);
 
     return js_object;
 }

@@ -68,13 +68,20 @@ class BLEJS {
         ble.init(this, &BLEJS::initComplete);
     }
 
-    void startAdvertising(jerry_value_t device_name_js, jerry_value_t service_uuids) {
+    void startAdvertising(jerry_value_t device_name_js, jerry_value_t service_uuids, jerry_value_t adv_interval_js) {
         size_t device_name_length = jerry_get_string_length(device_name_js);
         uint32_t uuids_length = jerry_get_array_length(service_uuids);
 
         // add an extra character to ensure there's a null character after the device name
         char* device_name = (char*)calloc(device_name_length + 1, sizeof(char));
         jerry_string_to_char_buffer(device_name_js, (jerry_char_t*)device_name, device_name_length);
+
+        // parse the advertisement interval
+        uint16_t adv_interval = 1000;
+        if (jerry_value_is_number(adv_interval_js)) {
+            double v = jerry_get_number_value(adv_interval_js);
+            adv_interval = static_cast<uint16_t>(v);
+        }
 
         // build an array of 16-bit uuids
         uint16_t* uuids = (uint16_t*)calloc(uuids_length, sizeof(uint16_t));
@@ -100,7 +107,7 @@ class BLEJS {
         ble.gap().accumulateAdvertisingPayload(GapAdvertisingData::COMPLETE_LOCAL_NAME, (uint8_t *)device_name, device_name_length);
         ble.gap().setAdvertisingType(GapAdvertisingParams::ADV_CONNECTABLE_UNDIRECTED);
         ble.gap().setDeviceName((const uint8_t*)device_name);
-        ble.gap().setAdvertisingInterval(1000); /* 1000ms. */
+        ble.gap().setAdvertisingInterval(adv_interval); /* 1000ms. */
         ble.gap().startAdvertising();
 
         free(uuids);

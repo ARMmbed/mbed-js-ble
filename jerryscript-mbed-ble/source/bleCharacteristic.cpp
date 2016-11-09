@@ -67,6 +67,7 @@ DECLARE_CLASS_FUNCTION(BLECharacteristic, write) {
  */
 DECLARE_CLASS_CONSTRUCTOR(BLECharacteristic) {
     CHECK_ARGUMENT_COUNT(BLECharacteristic, __constructor, (args_count == 3 || args_count == 4));
+
     CHECK_ARGUMENT_TYPE_ALWAYS(BLECharacteristic, __constructor, 0, string);
     CHECK_ARGUMENT_TYPE_ALWAYS(BLECharacteristic, __constructor, 1, array);
     CHECK_ARGUMENT_TYPE_ALWAYS(BLECharacteristic, __constructor, 2, number);
