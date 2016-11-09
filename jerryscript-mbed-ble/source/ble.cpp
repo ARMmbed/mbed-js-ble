@@ -152,8 +152,9 @@ DECLARE_CLASS_FUNCTION(BLEDevice, onDisconnection) {
 
 DECLARE_CLASS_CONSTRUCTOR(BLEDevice) {
     CHECK_ARGUMENT_COUNT(BLEDevice, __constructor, (args_count == 0));
+
     // check and unbox arguments
-    BLEJS *ble = new BLEJS(BLE::Instance());
+    BLEJS *ble = &BLEJS::Instance();
     uintptr_t native_ptr = (uintptr_t)ble;
 
     // create the jerryscript object

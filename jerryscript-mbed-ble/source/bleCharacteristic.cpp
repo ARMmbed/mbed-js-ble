@@ -25,12 +25,25 @@
 void BLECharacteristic__destructor(uintptr_t native_ptr) {
     LOG_PRINT_ALWAYS("BLECharacteristic: destructor\r\n");
     GattCharacteristic *data = (GattCharacteristic*)native_ptr;
+
+    BLEJS::Instance().clearWriteCallback(data);
+
     delete data;
 }
 
-DECLARE_CLASS_FUNCTION(BLECharacteristic, write) {
-    printf("BLECharacteristic.write\r\n");
+DECLARE_CLASS_FUNCTION(BLECharacteristic, read) {
+    CHECK_ARGUMENT_COUNT(BLECharacteristic, write, args_count==0);
 
+    // get the native pointer
+    uintptr_t native_handle;
+    jerry_get_object_native_handle(this_obj, &native_handle);
+
+    GattCharacteristic *native_ptr = (GattCharacteristic*)native_handle;
+
+    return BLEJS::getJsValueFromCharacteristic(native_ptr);
+}
+
+DECLARE_CLASS_FUNCTION(BLECharacteristic, write) {
     CHECK_ARGUMENT_COUNT(BLECharacteristic, write, args_count==1);
     CHECK_ARGUMENT_TYPE_ALWAYS(BLECharacteristic, write, 0, array);
 
@@ -54,6 +67,24 @@ DECLARE_CLASS_FUNCTION(BLECharacteristic, write) {
     BLE::Instance().gattServer().write(native_ptr->getValueHandle(), buffer, data_length);
 
     free(buffer);
+
+    return jerry_create_undefined();
+}
+
+DECLARE_CLASS_FUNCTION(BLECharacteristic, onUpdate) {
+    CHECK_ARGUMENT_COUNT(BLECharacteristic, onUpdate, (args_count == 1));
+    CHECK_ARGUMENT_TYPE_ALWAYS(BLECharacteristic, onUpdate, 0, function);
+
+    uintptr_t native_handle;
+    jerry_get_object_native_handle(this_obj, &native_handle);
+
+    GattCharacteristic *native_ptr = (GattCharacteristic*)native_handle;
+
+    jerry_value_t f = args[0];
+    jerry_acquire_value(f);
+
+    BLEJS* this_ble = &BLEJS::Instance();
+    this_ble->setWriteCallback(native_ptr, f);
 
     return jerry_create_undefined();
 }
@@ -119,7 +150,9 @@ DECLARE_CLASS_CONSTRUCTOR(BLECharacteristic) {
     jerry_value_t js_object = jerry_create_object();
     jerry_set_object_native_handle(js_object, native_ptr, NULL);
 
+    ATTACH_CLASS_FUNCTION(js_object, BLECharacteristic, read);
     ATTACH_CLASS_FUNCTION(js_object, BLECharacteristic, write);
+    ATTACH_CLASS_FUNCTION(js_object, BLECharacteristic, onUpdate);
 
     return js_object;
 }

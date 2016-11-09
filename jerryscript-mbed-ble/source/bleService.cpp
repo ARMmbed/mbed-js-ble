@@ -73,7 +73,7 @@ DECLARE_CLASS_CONSTRUCTOR(BLEService) {
 
     uint32_t characteristics_count = jerry_get_array_length(characteristics);
 
-    LOG_PRINT_ALWAYS("discovered %d characteristics\r\n", characteristics_count);
+    LOG_PRINT_ALWAYS("discovered %li characteristics\r\n", characteristics_count);
 
     GattCharacteristic **characteristics_array = (GattCharacteristic**)calloc(characteristics_count, sizeof(GattCharacteristic*));
 
