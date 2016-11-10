@@ -65,8 +65,7 @@ class BLEJS {
     static jerry_value_t getJsValueFromCharacteristic(GattCharacteristic* characteristic) {
         BLE* ble = &BLE::Instance();
 
-        // @todo, don't malloc
-        uint8_t * buffer = (uint8_t*)malloc(23);
+        uint8_t buffer[23];
         uint16_t length = 23;
 
         ble->gattServer().read(characteristic->getValueHandle(), buffer, &length);
@@ -78,8 +77,6 @@ class BLEJS {
             jerry_set_property_by_index(out_array, i, val);
             jerry_release_value(val);
         }
-
-        free(buffer);
 
         return out_array;
     }
