@@ -3,10 +3,7 @@
 		"."
 	],
 	"includes": [
-		"ble/BLE.h",
 		"jerryscript-mbed-ble/lib_ble.h"
 	],
-	"name": "ble",
-	"init_code": "BLE &ble = BLE::Instance(); ble.onEventsToProcess(scheduleBleEvents);",
-	"global_code": "static void scheduleBleEvents(BLE::OnEventsToProcessCallbackContext* context) { BLE &ble = BLE::Instance(); EventLoop::getInstance().nativeCallback(Callback<void()>(&ble, &BLE::processEvents)); }"
+	"name": "ble"
 }
