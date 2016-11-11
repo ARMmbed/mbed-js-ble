@@ -65,6 +65,7 @@ class BLEJS {
         }
 
         init_cb_function = f;
+        ble.onEventsToProcess(BLE::OnEventsToProcessCallback_t(this, &BLEJS::scheduleBleEvents));
         ble.init(this, &BLEJS::initComplete);
     }
 
@@ -143,6 +144,11 @@ class BLEJS {
         if (jerry_value_is_function(init_cb_function)) {
             jerry_call_function(init_cb_function, this_obj, NULL, 0);
         }
+    }
+
+    void scheduleBleEvents(BLE::OnEventsToProcessCallbackContext* context) {
+        BLE &ble = BLE::Instance();
+        mbed::js::EventLoop::getInstance().nativeCallback(mbed::Callback<void()>(&ble, &BLE::processEvents));
     }
 
     void connectionCallback(const Gap::ConnectionCallbackParams_t *params) {
