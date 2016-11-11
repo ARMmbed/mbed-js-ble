@@ -25,7 +25,7 @@
 
 DECLARE_CLASS_FUNCTION(BLEDevice, startAdvertising) {
     CHECK_ARGUMENT_COUNT(BLEDevice, startAdvertising,
-                        (args_count == 2 || args_count == 0));
+                        (args_count == 3 || args_count == 2 || args_count == 0));
 
     uintptr_t native_handle;
     jerry_get_object_native_handle(this_obj, &native_handle);
@@ -41,8 +41,13 @@ DECLARE_CLASS_FUNCTION(BLEDevice, startAdvertising) {
 
     CHECK_ARGUMENT_TYPE_ALWAYS(BLEDevice, startAdvertising, 0, string);
     CHECK_ARGUMENT_TYPE_ALWAYS(BLEDevice, startAdvertising, 1, array);
-
-    ble->startAdvertising(args[0], args[1]);
+    if (args_count == 2) {
+        ble->startAdvertising(args[0], args[1], jerry_create_undefined());
+    }
+    else {
+        CHECK_ARGUMENT_TYPE_ALWAYS(BLEDevice, startAdvertising, 2, number);
+        ble->startAdvertising(args[0], args[1], args[2]);
+    }
 
     return jerry_create_undefined();
 }
@@ -147,8 +152,9 @@ DECLARE_CLASS_FUNCTION(BLEDevice, onDisconnection) {
 
 DECLARE_CLASS_CONSTRUCTOR(BLEDevice) {
     CHECK_ARGUMENT_COUNT(BLEDevice, __constructor, (args_count == 0));
+
     // check and unbox arguments
-    BLEJS *ble = new BLEJS(BLE::Instance());
+    BLEJS *ble = &BLEJS::Instance();
     uintptr_t native_ptr = (uintptr_t)ble;
 
     // create the jerryscript object

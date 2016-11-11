@@ -14,13 +14,18 @@
  */
 #ifndef _JERRYSCRIPT_MBED_BLE_BLEJS_H
 #define _JERRYSCRIPT_MBED_BLE_BLEJS_H
+
 #include "jerry-core/jerry-api.h"
 
 #include "jerryscript-mbed-event-loop/EventLoop.h"
 #include "jerryscript-mbed-ble/ble-js.h"
 
+#include <map>
+
 #include "Callback.h"
 #include "ble/BLE.h"
+
+using namespace std;
 
 typedef struct {
     uint8_t *buffer;
@@ -52,11 +57,28 @@ static uint16_t hex_str_to_u16(const char* buf, const size_t buf_size) {
 
 class BLEJS {
  public:
-    BLEJS(BLE &ble) : ble(ble) {
-        this_obj = jerry_create_null();
+    static BLEJS& Instance() {
+        static BLEJS instance(BLE::Instance());
+        return instance;
     }
 
-    ~BLEJS() {
+    static jerry_value_t getJsValueFromCharacteristic(GattCharacteristic* characteristic) {
+        BLE* ble = &BLE::Instance();
+
+        uint8_t buffer[23];
+        uint16_t length = 23;
+
+        ble->gattServer().read(characteristic->getValueHandle(), buffer, &length);
+
+        jerry_value_t out_array = jerry_create_array(length);
+
+        for (uint16_t i = 0; i < length; i++) {
+            jerry_value_t val = jerry_create_number(double(buffer[i]));
+            jerry_set_property_by_index(out_array, i, val);
+            jerry_release_value(val);
+        }
+
+        return out_array;
     }
 
     void init(jerry_value_t f) {
@@ -69,13 +91,20 @@ class BLEJS {
         ble.init(this, &BLEJS::initComplete);
     }
 
-    void startAdvertising(jerry_value_t device_name_js, jerry_value_t service_uuids) {
+    void startAdvertising(jerry_value_t device_name_js, jerry_value_t service_uuids, jerry_value_t adv_interval_js) {
         size_t device_name_length = jerry_get_string_length(device_name_js);
         uint32_t uuids_length = jerry_get_array_length(service_uuids);
 
         // add an extra character to ensure there's a null character after the device name
         char* device_name = (char*)calloc(device_name_length + 1, sizeof(char));
         jerry_string_to_char_buffer(device_name_js, (jerry_char_t*)device_name, device_name_length);
+
+        // parse the advertisement interval
+        uint16_t adv_interval = 1000;
+        if (jerry_value_is_number(adv_interval_js)) {
+            double v = jerry_get_number_value(adv_interval_js);
+            adv_interval = static_cast<uint16_t>(v);
+        }
 
         // build an array of 16-bit uuids
         uint16_t* uuids = (uint16_t*)calloc(uuids_length, sizeof(uint16_t));
@@ -85,7 +114,7 @@ class BLEJS {
             jerry_value_t uuid_str_obj = jerry_get_property_by_index(service_uuids, i);
 
             if (!jerry_value_is_string(uuid_str_obj)) {
-                LOG_PRINT_ALWAYS("invalid uuid argument (%u). Ignoring.\r\n", i);
+                LOG_PRINT_ALWAYS("invalid uuid argument (%lu). Ignoring.\r\n", i);
                 jerry_release_value(uuid_str_obj);
                 continue;
             }
@@ -101,7 +130,7 @@ class BLEJS {
         ble.gap().accumulateAdvertisingPayload(GapAdvertisingData::COMPLETE_LOCAL_NAME, (uint8_t *)device_name, device_name_length);
         ble.gap().setAdvertisingType(GapAdvertisingParams::ADV_CONNECTABLE_UNDIRECTED);
         ble.gap().setDeviceName((const uint8_t*)device_name);
-        ble.gap().setAdvertisingInterval(1000); /* 1000ms. */
+        ble.gap().setAdvertisingInterval(adv_interval); /* 1000ms. */
         ble.gap().startAdvertising();
 
         free(uuids);
@@ -131,10 +160,30 @@ class BLEJS {
     }
 
     bool isConnected() {
-      return ble.gap().getState().connected;
+        return ble.gap().getState().connected;
+    }
+
+    void setWriteCallback(GattCharacteristic* characteristic, jerry_value_t callback) {
+        write_callbacks[characteristic] = callback;
+    }
+
+    void clearWriteCallback(GattCharacteristic* characteristic) {
+        write_callbacks.erase(characteristic);
     }
 
  private:
+     BLEJS(BLE &ble) : ble(ble) {
+        this_obj = jerry_create_null();
+
+        ble.gattServer().onDataWritten(this, &BLEJS::onDataWrittenCallback);
+    }
+
+    ~BLEJS() {
+    }
+
+    BLEJS(BLEJS const&);            // Empty on purpose
+    void operator=(BLEJS const&);   // Empty on purpose
+
     void initComplete(BLE::InitializationCompleteCallbackContext *context) {
         if (context->error != BLE_ERROR_NONE) {
             LOG_PRINT_ALWAYS("Error while initialising BLE context\r\n");
@@ -163,10 +212,29 @@ class BLEJS {
         }
     }
 
+    void onDataWrittenCallback(const GattWriteCallbackParams *params) {
+        // see if we know for which char this message is...
+        typedef std::map<GattCharacteristic*, jerry_value_t>::iterator it_type;
+        for(it_type it = write_callbacks.begin(); it != write_callbacks.end(); it++) {
+            if (it->first->getValueHandle() == params->handle) {
+                if (jerry_value_is_function(it->second)) {
+                    const jerry_value_t args[1] = {
+                        getJsValueFromCharacteristic(it->first)
+                    };
+
+                    // @todo, this_obj is wrong
+                    jerry_call_function(it->second, this_obj, args, 1);
+                }
+            }
+        }
+    }
+
+
     jerry_value_t this_obj;
     jerry_value_t init_cb_function;
     jerry_value_t connect_cb_function;
     jerry_value_t disconnect_cb_function;
+    map<GattCharacteristic*, jerry_value_t> write_callbacks;
 
     BLE& ble;
 };
