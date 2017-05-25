@@ -12,7 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "jerry-core/jerry-api.h"
 
 #include "jerryscript-mbed-event-loop/EventLoop.h"
 #include "jerryscript-mbed-ble/ble-js.h"
