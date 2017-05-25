@@ -15,8 +15,6 @@
 #ifndef _JERRYSCRIPT_MBED_BLE_BLEJS_H
 #define _JERRYSCRIPT_MBED_BLE_BLEJS_H
 
-#include "jerry-core/jerry-api.h"
-
 #include "jerryscript-mbed-event-loop/EventLoop.h"
 #include "jerryscript-mbed-ble/ble-js.h"
 
