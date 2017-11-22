@@ -99,7 +99,7 @@ class BLEJS {
     void startAdvertising(jerry_value_t device_name_js, jerry_value_t service_uuids, jerry_value_t adv_interval_js) {
         size_t device_name_length = jerry_get_string_length(device_name_js);
         uint32_t uuids_length = jerry_get_array_length(service_uuids);
-
+        
         // add an extra character to ensure there's a null character after the device name
         char* device_name = (char*)calloc(device_name_length + 1, sizeof(char));
         jerry_string_to_char_buffer(device_name_js, (jerry_char_t*)device_name, device_name_length);
@@ -112,33 +112,49 @@ class BLEJS {
         }
 
         // build an array of 16-bit uuids
-        uint16_t* uuids = (uint16_t*)calloc(uuids_length, sizeof(uint16_t));
+        //uint16_t* uuids = (uint16_t*)calloc(uuids_length, sizeof(uint16_t));
 
         for (uint32_t i = 0; i < uuids_length; i++) {
-            char buf[5] = {0};
-            jerry_value_t uuid_str_obj = jerry_get_property_by_index(service_uuids, i);
+            // Check for UUID length
+            jerry_value_t service_uuid = jerry_get_property_by_index(service_uuids, i);
+            int uuid_length = (int)jerry_get_utf8_string_length(service_uuid);
 
-            if (!jerry_value_is_string(uuid_str_obj)) {
-                LOG_PRINT_ALWAYS("invalid uuid argument (%lu). Ignoring.\r\n", i);
-                jerry_release_value(uuid_str_obj);
-                continue;
+            if(uuid_length == 4){
+                // It's short UUID
+                char buf[5] = {0};
+                jerry_value_t uuid_str_obj = jerry_get_property_by_index(service_uuids, i);
+
+                if (!jerry_value_is_string(service_uuid)) {
+                    LOG_PRINT_ALWAYS("invalid uuid argument (%lu). Ignoring.\r\n", i);
+                    jerry_release_value(service_uuid);
+                    continue;
+                }
+
+                jerry_string_to_char_buffer(service_uuid, (jerry_char_t*)buf, 4);
+                jerry_release_value(service_uuid);
+
+                uint16_t uuid = hex_str_to_u16(buf, 4);
+                ble.gap().accumulateAdvertisingPayload(GapAdvertisingData::INCOMPLETE_LIST_16BIT_SERVICE_IDS, (uint8_t *)uuid, 2);
             }
-
-            jerry_string_to_char_buffer(uuid_str_obj, (jerry_char_t*)buf, 4);
-            jerry_release_value(uuid_str_obj);
-
-            uuids[i] = hex_str_to_u16(buf, 4);
+            else{
+                // It's a complete 128bit UUID
+                // unwrap the uuid
+                char uuid_buf[37] = {0};
+                jerry_string_to_char_buffer(service_uuid, (jerry_char_t*)uuid_buf, 37);
+                jerry_release_value(service_uuid);
+                
+                ble.gap().accumulateAdvertisingPayload(GapAdvertisingData::INCOMPLETE_LIST_128BIT_SERVICE_IDS, (jerry_char_t*)uuid_buf, 37);
+        
+            }
         }
 
         ble.gap().accumulateAdvertisingPayload(GapAdvertisingData::BREDR_NOT_SUPPORTED | GapAdvertisingData::LE_GENERAL_DISCOVERABLE);
-        ble.gap().accumulateAdvertisingPayload(GapAdvertisingData::COMPLETE_LIST_16BIT_SERVICE_IDS, (uint8_t *)uuids, uuids_length * 2);
         ble.gap().accumulateAdvertisingPayload(GapAdvertisingData::COMPLETE_LOCAL_NAME, (uint8_t *)device_name, device_name_length);
         ble.gap().setAdvertisingType(GapAdvertisingParams::ADV_CONNECTABLE_UNDIRECTED);
         ble.gap().setDeviceName((const uint8_t*)device_name);
         ble.gap().setAdvertisingInterval(adv_interval); /* 1000ms. */
         ble.gap().startAdvertising();
 
-        free(uuids);
         free(device_name);
     }
 

@@ -152,8 +152,8 @@ DECLARE_CLASS_CONSTRUCTOR(BLECharacteristic) {
         // It's a complete 128bit UUID
         
         // unwrap the uuid
-        char uuid_buf[42] = {0};
-        jerry_string_to_char_buffer(service_uuid, (jerry_char_t*)uuid_buf, 42);
+        char uuid_buf[37] = {0};
+        jerry_string_to_char_buffer(service_uuid, (jerry_char_t*)uuid_buf, 37);
         jerry_release_value(service_uuid);
         characteristic = new GattCharacteristic(uuid_buf, buffer, buffer_size, buffer_size, props);
     }
