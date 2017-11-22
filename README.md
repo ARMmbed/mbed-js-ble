@@ -66,3 +66,45 @@ characteristic.onUpdate(function (newValue) {
     print("Updated! New value is " + newValue.length + ", first element is " + newValue[0]);
 });
 ```
+## Fork Details
+
+Implememted support for 128-bit UUIDs
+
+Examples:
+
+```js
+
+// BLECharacteristic
+// takes in: characteristic UUID (16 bit or 128 bit), array of properties (r/w/n), data size
+characteristic = BLECharacteristic('XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX', ['read', 'write', 'notify'], 1);
+characteristic = BLECharacteristic('9100', ['read', 'write', 'notify'], 1);
+
+// BLEService
+// takes in: characteristic UUID (16 bit or 128 bit), array of characteristics
+service = BLEService('9100', [ characteristic ]);
+service = BLEService('XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX', [ characteristic ]);
+
+```
+Implemented Long UUID support in BLEService.GetUUID()
+```js
+    uuid = service.GetUUID()
+```
+
+Added Manufacturer info in the startAdveritising method:
+
+```js
+// Valid methods
+// takes: name to advertise, array of UUIDs (strings)
+BLE ble = BLEDevice();
+ble.startAdvertising('advertisingName', [ service.getUUID() ]);
+
+// takes: name to advertise, array of UUIDs (strings), advertisement interval (default: 1000),
+ble.startAdvertising('advertisingName', [ service.getUUID() ], 100);
+
+// takes: name to advertise, array of UUIDs (strings), advertisement interval (default: 1000), Manufacturer's info
+ble.startAdvertising('advertisingName', [ service.getUUID() ], 100, '018000E00000');
+
+// takes: name to advertise, array of UUIDs (strings), Manufacturer's info
+ble.startAdvertising('advertisingName', [ service.getUUID() ], '018000E00000');
+
+```
