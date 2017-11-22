@@ -16,7 +16,7 @@
 #define _JERRYSCRIPT_MBED_BLE_BLEJS_H
 
 #include "jerryscript-mbed-event-loop/EventLoop.h"
-#include "BLE_JS/ble-js.h"
+#include "jerryscript-mbed-ble/ble-js.h"
 
 #include <map>
 

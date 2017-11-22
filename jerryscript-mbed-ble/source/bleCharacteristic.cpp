@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 #include "jerryscript-mbed-event-loop/EventLoop.h"
-#include "BLE_JS/ble-js.h"
-#include "BLE_JS/BLEJS.h"
+#include "jerryscript-mbed-ble/ble-js.h"
+#include "jerryscript-mbed-ble/BLEJS.h"
 
 #include "ble/BLE.h"
 

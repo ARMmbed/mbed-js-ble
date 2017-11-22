@@ -14,9 +14,9 @@
  */
 #include "jerryscript-mbed-event-loop/EventLoop.h"
 
-#include "BLE_JS/ble-js.h"
-#include "BLE_JS/BLEJS.h"
-#include "BLE_JS/blejs_types.h"
+#include "jerryscript-mbed-ble/ble-js.h"
+#include "jerryscript-mbed-ble/BLEJS.h"
+#include "jerryscript-mbed-ble/blejs_types.h"
 
 #include "ble/BLE.h"
 
