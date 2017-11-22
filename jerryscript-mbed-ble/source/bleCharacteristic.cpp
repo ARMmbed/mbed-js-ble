@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 #include "jerryscript-mbed-event-loop/EventLoop.h"
-#include "jerryscript-mbed-ble/ble-js.h"
-#include "jerryscript-mbed-ble/BLEJS.h"
+#include "BLE_JS/ble-js.h"
+#include "BLE_JS/BLEJS.h"
 
 #include "ble/BLE.h"
 
@@ -103,12 +103,8 @@ DECLARE_CLASS_CONSTRUCTOR(BLECharacteristic) {
     CHECK_ARGUMENT_TYPE_ON_CONDITION(BLECharacteristic, __constructor, 3, array, args_count == 4);
 
     jerry_value_t service_uuid = args[0];
-
-    // unwrap the uuid
-    char uuid_buf[4] = {0};
-    jerry_string_to_char_buffer(service_uuid, (jerry_char_t*)uuid_buf, 4);
-    jerry_release_value(service_uuid);
-    uint16_t uuid = hex_str_to_u16(uuid_buf, sizeof(uuid_buf));
+    int uuid_length = (int)jerry_get_utf8_string_length(service_uuid);
+    //printf("\nLength of UUID: %i\n", uuid_length);
 
     uint8_t props = GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NONE;
 
@@ -140,7 +136,28 @@ DECLARE_CLASS_CONSTRUCTOR(BLECharacteristic) {
     size_t buffer_size = 23;
 
     uint8_t *buffer = (uint8_t*)calloc(buffer_size, 1);
-    GattCharacteristic *characteristic = new GattCharacteristic(uuid, buffer, buffer_size, buffer_size, props);
+    
+    GattCharacteristic *characteristic = NULL;
+    if(uuid_length == 4){
+        // It's short UUID
+        
+        // unwrap the uuid
+        char uuid_buf[4] = {0};
+        jerry_string_to_char_buffer(service_uuid, (jerry_char_t*)uuid_buf, 4);
+        jerry_release_value(service_uuid);
+        uint16_t uuid = hex_str_to_u16(uuid_buf, sizeof(uuid_buf));
+        characteristic = new GattCharacteristic(uuid, buffer, buffer_size, buffer_size, props);
+    }
+    else{
+        // It's a complete 128bit UUID
+        
+        // unwrap the uuid
+        char uuid_buf[42] = {0};
+        jerry_string_to_char_buffer(service_uuid, (jerry_char_t*)uuid_buf, 42);
+        jerry_release_value(service_uuid);
+        characteristic = new GattCharacteristic(uuid_buf, buffer, buffer_size, buffer_size, props);
+    }
+    
     //char_data_t *char_data = new char_data_t { buffer, buffer_size, characteristic };
     uintptr_t native_ptr = (uintptr_t)characteristic;
 

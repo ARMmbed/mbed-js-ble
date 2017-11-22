@@ -16,7 +16,7 @@
 #define _JERRYSCRIPT_MBED_BLE_BLEJS_H
 
 #include "jerryscript-mbed-event-loop/EventLoop.h"
-#include "jerryscript-mbed-ble/ble-js.h"
+#include "BLE_JS/ble-js.h"
 
 #include <map>
 
@@ -51,6 +51,13 @@ static uint16_t hex_str_to_u16(const char* buf, const size_t buf_size) {
     }
 
     return ans;
+}
+
+static void man_str_to_u8_array(const char*buf, const size_t buf_size, uint8_t *out){
+    for(size_t i = 0; i < buf_size; i+=2){
+        const char buf_temp[2] = {buf[i], buf[i+1]};
+        out[i/2] = hex_str_to_u16(buf_temp, 2);
+    }
 }
 
 class BLEJS {
@@ -133,6 +140,65 @@ class BLEJS {
 
         free(uuids);
         free(device_name);
+    }
+
+    void startAdvertising(jerry_value_t device_name_js, jerry_value_t service_uuids, jerry_value_t adv_interval_js, jerry_value_t manufacturer_data_js) {
+        size_t device_name_length = jerry_get_string_length(device_name_js);
+        uint32_t uuids_length = jerry_get_array_length(service_uuids);
+        size_t manufacturer_data_length = jerry_get_string_length(manufacturer_data_js);
+        
+        // add an extra character to ensure there's a null character after the device name
+        char* device_name = (char*)calloc(device_name_length + 1, sizeof(char));
+        jerry_string_to_char_buffer(device_name_js, (jerry_char_t*)device_name, device_name_length);
+
+        // parse the advertisement interval
+        uint16_t adv_interval = 1000;
+        if (jerry_value_is_number(adv_interval_js)) {
+            double v = jerry_get_number_value(adv_interval_js);
+            adv_interval = static_cast<uint16_t>(v);
+        }
+
+        // build an array of 16-bit uuids
+        uint16_t* uuids = (uint16_t*)calloc(uuids_length, sizeof(uint16_t));
+
+        for (uint32_t i = 0; i < uuids_length; i++) {
+            char buf[5] = {0};
+            jerry_value_t uuid_str_obj = jerry_get_property_by_index(service_uuids, i);
+
+            if (!jerry_value_is_string(uuid_str_obj)) {
+                LOG_PRINT_ALWAYS("invalid uuid argument (%lu). Ignoring.\r\n", i);
+                jerry_release_value(uuid_str_obj);
+                continue;
+            }
+
+            jerry_string_to_char_buffer(uuid_str_obj, (jerry_char_t*)buf, 4);
+            jerry_release_value(uuid_str_obj);
+
+            uuids[i] = hex_str_to_u16(buf, 4);
+        }
+
+        // add an extra character to ensure there's a null character after the manufacturer data
+        char* manufacturer_data = (char*)calloc(manufacturer_data_length, sizeof(char));
+        jerry_string_to_char_buffer(manufacturer_data_js, (jerry_char_t*)manufacturer_data, manufacturer_data_length);
+        
+        uint8_t man_dat[6] = {0};
+        man_str_to_u8_array(manufacturer_data, manufacturer_data_length, man_dat);
+
+        //uint8_t man_dat[]= {0x01,0x80,0x00,0x80,0x00,0x00};
+        ble.gap().accumulateScanResponse(GapAdvertisingData::MANUFACTURER_SPECIFIC_DATA, man_dat, manufacturer_data_length/2);    
+        //
+
+        ble.gap().accumulateAdvertisingPayload(GapAdvertisingData::BREDR_NOT_SUPPORTED | GapAdvertisingData::LE_GENERAL_DISCOVERABLE);
+        ble.gap().accumulateAdvertisingPayload(GapAdvertisingData::COMPLETE_LIST_16BIT_SERVICE_IDS, (uint8_t *)uuids, uuids_length * 2);
+        ble.gap().accumulateAdvertisingPayload(GapAdvertisingData::COMPLETE_LOCAL_NAME, (uint8_t *)device_name, device_name_length);
+        ble.gap().setAdvertisingType(GapAdvertisingParams::ADV_CONNECTABLE_UNDIRECTED);
+        ble.gap().setDeviceName((const uint8_t*)device_name);
+        ble.gap().setAdvertisingInterval(adv_interval); /* 1000ms. */
+        ble.gap().startAdvertising();
+
+        free(uuids);
+        free(device_name);
+        free(manufacturer_data);
     }
 
     void startAdvertising() {

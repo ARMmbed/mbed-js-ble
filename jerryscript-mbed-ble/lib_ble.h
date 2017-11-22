@@ -15,7 +15,7 @@
 #ifndef _JERRYSCRIPT_MBED_LIB_BLE_H
 #define _JERRYSCRIPT_MBED_LIB_BLE_H
 
-#include "jerryscript-mbed-ble/ble-js.h"
+#include "BLE_JS/ble-js.h"
 #include "jerryscript-mbed-library-registry/wrap_tools.h"
 
 DECLARE_JS_WRAPPER_REGISTRATION (ble)
