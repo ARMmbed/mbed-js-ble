@@ -43,8 +43,12 @@ DECLARE_CLASS_FUNCTION(BLEService, getUUID) {
 
     // @todo, support 128-bit UUIDs
     if (uuid.shortOrLong() == UUID::UUID_TYPE_LONG) {
-        printf("BLEService.getUUID(): 128 bit UUIDs not yet supported...\r\n");
-        return jerry_create_undefined();
+        const uint8_t *longUUID= uuid.getBaseUUID();
+        char buf[37] = {0};
+        for(int i = 0; i < 16; i+=1){
+            sprintf(&buf[i*2], "%02x", longUUID[15-i]);
+        }
+        return jerry_create_string((const jerry_char_t *) buf);
     }
     else {
         uint16_t shortUuid = uuid.getShortUUID();
@@ -63,12 +67,6 @@ DECLARE_CLASS_CONSTRUCTOR(BLEService) {
     jerry_value_t service_uuid = args[0];
     jerry_value_t characteristics = args[1];
 
-    // unwrap the uuid
-    char uuid_buf[4] = {0};
-    jerry_string_to_char_buffer(service_uuid, (jerry_char_t*)uuid_buf, 4);
-    jerry_release_value(service_uuid);
-    uint16_t uuid = hex_str_to_u16(uuid_buf, 4);
-
     uint32_t characteristics_count = jerry_get_array_length(characteristics);
 
     LOG_PRINT_ALWAYS("discovered %li characteristics\r\n", characteristics_count);
@@ -83,8 +81,34 @@ DECLARE_CLASS_CONSTRUCTOR(BLEService) {
         jerry_release_value(char_obj);
     }
 
-    GattService *jsService = new GattService(uuid, characteristics_array, characteristics_count);
+    GattService *jsService = NULL;
 
+    int uuid_length = (int)jerry_get_utf8_string_length(service_uuid);
+    printf("\nLength of Advertisement UUID: %i\n", uuid_length);
+    if(uuid_length == 4){
+        // It's short UUID
+        // unwrap the uuid
+        char uuid_buf[4] = {0};
+        jerry_string_to_char_buffer(service_uuid, (jerry_char_t*)uuid_buf, 4);
+        jerry_release_value(service_uuid);
+        uint16_t uuid = hex_str_to_u16(uuid_buf, 4);
+
+        jsService = new GattService(uuid, characteristics_array, characteristics_count);
+    }
+    else{
+        // It's a complete 128bit UUID
+        
+        // unwrap the uuid
+        char uuid_buf[42] = {0};
+        jerry_string_to_char_buffer(service_uuid, (jerry_char_t*)uuid_buf, 42);
+        jerry_release_value(service_uuid);
+        jsService = new GattService(uuid_buf, characteristics_array, characteristics_count);
+    }
+    
+    
+    
+    
+    
     js_ble_service_data_t *serviceData = (js_ble_service_data_t*)malloc(sizeof(js_ble_service_data_t));
     serviceData->service = jsService;
     serviceData->characteristics = characteristics_array;

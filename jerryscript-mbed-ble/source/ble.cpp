@@ -24,7 +24,7 @@
 
 DECLARE_CLASS_FUNCTION(BLEDevice, startAdvertising) {
     CHECK_ARGUMENT_COUNT(BLEDevice, startAdvertising,
-                        (args_count == 3 || args_count == 2 || args_count == 0));
+                        (args_count == 4 || args_count == 3 || args_count == 2 || args_count == 0));
 
     uintptr_t native_handle;
     jerry_get_object_native_handle(this_obj, &native_handle);
@@ -43,11 +43,20 @@ DECLARE_CLASS_FUNCTION(BLEDevice, startAdvertising) {
     if (args_count == 2) {
         ble->startAdvertising(args[0], args[1], jerry_create_undefined());
     }
-    else {
-        CHECK_ARGUMENT_TYPE_ALWAYS(BLEDevice, startAdvertising, 2, number);
-        ble->startAdvertising(args[0], args[1], args[2]);
+    else if (args_count == 3) {
+        //CHECK_ARGUMENT_TYPE_ALWAYS(BLEDevice, startAdvertising, 2, number);
+        if(jerry_value_is_number(args[2])){
+            ble->startAdvertising(args[0], args[1], args[2]);
+        }
+        else if(jerry_value_is_string(args[2])){
+            ble->startAdvertising(args[0], args[1], jerry_create_undefined(), args[2]);
+        }
     }
-
+    else if (args_count == 4) {
+        CHECK_ARGUMENT_TYPE_ALWAYS(BLEDevice, startAdvertising, 2, number);
+        CHECK_ARGUMENT_TYPE_ALWAYS(BLEDevice, startAdvertising, 3, string);
+        ble->startAdvertising(args[0], args[1], args[2], args[3]);
+    }
     return jerry_create_undefined();
 }
 
@@ -159,6 +168,7 @@ DECLARE_CLASS_CONSTRUCTOR(BLEDevice) {
     // create the jerryscript object
     jerry_value_t js_object = jerry_create_object();
     jerry_set_object_native_handle(js_object, native_ptr, NULL);
+
 
     ATTACH_CLASS_FUNCTION(js_object, BLEDevice, startAdvertising);
     ATTACH_CLASS_FUNCTION(js_object, BLEDevice, stopAdvertising);

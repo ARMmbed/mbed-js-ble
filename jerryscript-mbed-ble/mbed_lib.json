@@ -1,0 +1,8 @@
+{
+    "name": "jerryscript-mbed-ble",
+    "target_overrides": {
+        "*": {
+            "target.features_add": ["BLE"]
+        }
+    }
+}
